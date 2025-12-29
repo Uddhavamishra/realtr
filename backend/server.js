@@ -1,68 +1,44 @@
-import axios from "axios";
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
 
-// Backend base URL
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  "https://realtr-backend.onrender.com/";
+const app = express();
 
-// Axios instance
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+// Middleware
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : 'http://localhost:3000',
+  credentials: true
+}));
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('MongoDB Connected Successfully'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
+
+// Routes
+const projectRoutes = require('./routes/projectRoutes');
+const clientRoutes = require('./routes/clientRoutes');
+const contactRoutes = require('./routes/contactRoutes');
+const newsletterRoutes = require('./routes/newsletterRoutes');
+
+app.use('/api/projects', projectRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/contacts', contactRoutes);
+app.use('/api/newsletter', newsletterRoutes);
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'RealTrust API is running' });
 });
 
-/* =========================
-   PROJECTS API
-========================= */
-export const projectsAPI = {
-  getAll: () => api.get("/api/projects"),
-  getById: (id) => api.get(`/api/projects/${id}`),
-  create: (formData) =>
-    api.post("/api/projects", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  update: (id, formData) =>
-    api.put(`/api/projects/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  delete: (id) => api.delete(`/api/projects/${id}`),
-};
+const PORT = process.env.PORT || 5000;
 
-/* =========================
-   CLIENTS API
-========================= */
-export const clientsAPI = {
-  getAll: () => api.get("/api/clients"),
-  getById: (id) => api.get(`/api/clients/${id}`),
-  create: (formData) =>
-    api.post("/api/clients", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  update: (id, formData) =>
-    api.put(`/api/clients/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  delete: (id) => api.delete(`/api/clients/${id}`),
-};
-
-/* =========================
-   CONTACTS API
-========================= */
-export const contactsAPI = {
-  getAll: () => api.get("/api/contacts"),
-  create: (data) => api.post("/api/contacts", data),
-  delete: (id) => api.delete(`/api/contacts/${id}`),
-};
-
-/* =========================
-   NEWSLETTER API
-========================= */
-export const newsletterAPI = {
-  getAll: () => api.get("/api/newsletter"),
-  subscribe: (email) => api.post("/api/newsletter", { email }),
-  unsubscribe: (id) => api.delete(`/api/newsletter/${id}`),
-};
-
-export default api;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
